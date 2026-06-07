@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Discover how your daily habits affect the planet — get a personalised eco score across 7 key areas."/>
+  <title>Eco Self-Survey 🌍</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0b1f14; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+
+
+// ─── GRADE SYSTEM ─────────────────────────────────────────────────────────────
+const getGrade = (score) => {
+  if (score >= 9.0) return { letter:"A+", label:"Outstanding",    color:"#22c55e", bg:"rgba(34,197,94,0.12)",  emoji:"🌿" };
+  if (score >= 8.0) return { letter:"A",  label:"Excellent",      color:"#4ade80", bg:"rgba(74,222,128,0.10)", emoji:"🍃" };
+  if (score >= 7.0) return { letter:"B+", label:"Very Good",      color:"#a3e635", bg:"rgba(163,230,53,0.10)", emoji:"🌱" };
+  if (score >= 6.0) return { letter:"B",  label:"Good",           color:"#facc15", bg:"rgba(250,204,21,0.10)", emoji:"☀️" };
+  if (score >= 5.0) return { letter:"C+", label:"Developing",     color:"#fb923c", bg:"rgba(251,146,60,0.10)", emoji:"🌤️" };
+  if (score >= 4.0) return { letter:"C",  label:"Fair",           color:"#f97316", bg:"rgba(249,115,22,0.10)", emoji:"⛅" };
+  if (score >= 3.0) return { letter:"D",  label:"Needs Work",     color:"#ef4444", bg:"rgba(239,68,68,0.10)",  emoji:"🔥" };
+  return             { letter:"E",  label:"Getting Started", color:"#dc2626", bg:"rgba(220,38,38,0.10)",  emoji:"💡" };
+};
+
+const getOverallMsg = (s) => {
+  if (s>=9.0) return "Extraordinary! You're a genuine sustainability champion — your habits make a real, measurable difference every single day.";
+  if (s>=8.0) return "Excellent work! You're living with real environmental awareness. A few more steps and you'll be at the very top.";
+  if (s>=7.0) return "Really well done! You've built strong eco habits across most areas — keep going, you're so close to excellent.";
+  if (s>=6.0) return "Good effort! You're doing better than most. There are clear opportunities to take your impact to the next level.";
+  if (s>=5.0) return "A decent start. You've got some good habits but several areas could use attention — small changes add up fast.";
+  if (s>=4.0) return "You're on the journey. There's real room to grow across multiple areas — but every improvement counts.";
+  if (s>=3.0) return "There's quite a bit of room to improve — picking just one area to focus on can make a big difference.";
+  return "Every journey starts with a single step. Use the tips below to find the easiest wins for you right now.";
+};
+
+// ─── TIPS ─────────────────────────────────────────────────────────────────────
+const TIPS = {
+  heating:{
+    great:[
+      "Your home heating and energy setup is among the greenest options available — heating accounts for up to 40% of a home's carbon footprint, so this is a huge win.",
+      "Smart heating controls like yours can reduce energy use by up to 20% vs manual control — savings that compound every single day.",
+      "Keeping your heating system serviced annually maintains peak efficiency and significantly extends its working life.",
+      "Automatic lighting controls like PIR and daylight sensors mean you never waste energy on empty rooms — a highly effective upgrade.",
+      "Washing full loads at 30°C is one of the easiest high-impact changes for appliance energy use — great if you\'re already doing this.",
+    ],
+    improve:[
+      {th:7,t:"Switching to a 100% green tariff is often the same price and takes one phone call — look for REGO-backed renewable tariffs from your supplier."},
+      {th:7,t:"A smart thermostat (Nest, Hive, Tado) learns your schedule automatically and stops heating empty rooms — most pay for themselves in under a year."},
+      {th:6,t:"Setting your thermostat back 2–3°C while you're out can cut your heating carbon footprint by up to 10% — a simple timer achieves this."},
+      {th:6,t:"Bioenergy tariffs (biomass, biogas) offer a lower-carbon alternative to gas — worth asking your supplier about switching options."},
+      {th:5,t:"Insulating your loft and cavity walls is the single biggest way to reduce how much heating your home needs. Many governments offer grants."},
+      {th:5,t:"Draught-proofing doors and windows is a cheap DIY fix that can save 10% on heating bills immediately."},
+      {th:4,t:"Heat pumps are 3× more efficient than gas boilers. When your boiler next needs replacing, a heat pump is the greenest upgrade you can make."},
+      {th:4,t:"Every 1°C you lower your thermostat saves around 10% on heating energy — try dressing for the season before reaching for the dial."},
+      {th:3,t:"Heating accounts for up to 40% of a home's carbon footprint. Even a basic timer control stops your heating running when no one is home."},
+      {th:3,t:"Washing at 30°C instead of 60°C uses around 40% less energy — modern detergents work just as well at lower temperatures."},
+      {th:3,t:"PIR motion sensors automatically turn lights off when a room is empty — a simple fitting that eliminates wasted lighting energy entirely."},
+      {th:2,t:"Tumble dryers are one of the most energy-hungry appliances at home. Air drying clothes whenever possible saves significant electricity."},
+      {th:2,t:"Light-sensitive daylight sensors prevent lights coming on unnecessarily during daylight hours — particularly effective for hallways and outdoor areas."},
+      {th:0,t:"Switching from oil or solid fuel to electric heating on a green tariff is one of the most impactful single changes you could make."},
+    ],
+  },
+  vehicle:{
+    great:[
+      "Your vehicle choice is among the greenest options available — EVs charged on today's grid are equivalent to a 100+ mpg petrol car, and get cleaner every year.",
+      "Low weekly mileage amplifies the impact of your cleaner vehicle choice even further.",
+      "Research consistently shows EVs produce far fewer greenhouse gases over their full lifetime than any petrol or diesel equivalent.",
+      "A newer vehicle meeting Euro 6 or Euro 7 standards produces a fraction of the emissions of older equivalents — 50 new cars today emit the same as one 1970s vehicle.",
+    ],
+    improve:[
+      {th:8,t:"Even in an EV, combining trips and reducing unnecessary journeys maximises your environmental benefit and battery longevity."},
+      {th:7,t:"PHEVs deliver their lowest emissions when charged daily — plug in every night to maximise electric-only miles and minimise petrol use."},
+      {th:6,t:"Smooth, steady driving (avoiding harsh acceleration and hard braking) can improve fuel efficiency by up to 15% in any vehicle."},
+      {th:6,t:"Correct tyre pressure improves fuel economy by up to 3% — a simple monthly check with a gauge makes a real cumulative difference."},
+      {th:5,t:"Removing roof racks and boxes when not in use reduces drag and can cut motorway fuel use by up to 10%."},
+      {th:5,t:"Car sharing for regular commutes halves per-person emissions instantly — apps like BlaBlaCar and Liftshare make arranging this straightforward."},
+      {th:4,t:"Short trips under 5 miles are the most polluting per mile — cold engines run far less efficiently. Walking or cycling these saves disproportionately."},
+      {th:4,t:"An EV purchased today produces ~15 tonnes CO₂ over its lifetime vs ~38 tonnes for a comparable petrol car — the difference is transformative."},
+      {th:3,t:"Car club memberships (Zipcar, Enterprise Car Club) can replace ownership entirely for infrequent drivers."},
+      {th:0,t:"Not owning a car is one of the highest-impact individual climate actions, saving over a tonne of CO₂ per year vs the average driver."},
+      {th:5,t:"Vehicles made before 2015 predate Euro 6 standards and fail most UK Clean Air Zones. Older diesels face daily charges of £12.50+ to enter London’s ULEZ and similar zones in Birmingham, Bristol and Manchester."},
+      {th:4,t:"It would take 50 new cars today to produce the same emissions as one car built in the 1970s — upgrading an older vehicle has a disproportionately large environmental benefit."},
+      {th:3,t:"The UK bans the sale of new pure petrol and diesel cars from 2030. Vehicles built before 2019 predate real-world emissions testing and are often significantly more polluting than their official figures suggest."},
+      {th:2,t:"Euro 7 standards introduced in July 2025 are the strictest yet, covering not just exhaust emissions but also brake dust and tyre particulates. Vehicles from 2026 onwards meet these latest standards."},
+      {th:1,t:"Pre-2006 vehicles (Euro 1–3) produce extremely high levels of NOx and particulate matter — many times higher than a modern equivalent. These vehicles are non-compliant in virtually every Clean Air Zone in the UK."},
+    ],
+  },
+  transport:{
+    great:[
+      "Your active and public transport habits are outstanding — you're generating a fraction of the emissions of someone who drives everywhere.",
+      "Public transport emits up to 10× less CO₂ per mile than a solo petrol car. Every bus or train journey makes a real cumulative difference.",
+      "Walking and cycling produce zero direct emissions — and deliver significant health benefits alongside the climate benefits.",
+    ],
+    improve:[
+      {th:8,t:"Journey planner apps (Citymapper, Google Maps in transit mode) often reveal public transport options you didn't know existed for your regular routes."},
+      {th:7,t:"A significant share of travel pollution comes from journeys under 5 miles — these are the easiest to replace with walking or cycling."},
+      {th:6,t:"A folding bike pairs brilliantly with train travel, letting you reach your destination car-free even for longer journeys."},
+      {th:6,t:"Try replacing just one regular car journey a week with walking or public transport — habits build quickly once started."},
+      {th:5,t:"E-bikes make cycling practical even for hilly areas or longer commutes. Many councils offer subsidised e-bike purchase schemes."},
+      {th:5,t:"Train season tickets are often significantly cheaper than running a car for commuters — worth comparing the true annual cost."},
+      {th:4,t:"Walking or cycling for trips under 20 minutes is frequently as fast as driving once parking is factored in — and completely emissions-free."},
+      {th:4,t:"Many employers offer a Cycle to Work scheme allowing you to buy a bike tax-free — worth asking HR today."},
+      {th:3,t:"Even swapping one car journey a week for walking or cycling prevents hundreds of kilograms of CO₂ over a year."},
+      {th:0,t:"Public transport emits up to 10× less CO₂ per mile than a solo car — even occasional use makes a meaningful annual difference."},
+    ],
+  },
+  diet:{
+    great:[
+      "Your diet choices are among the most impactful individual climate actions possible — food systems account for ~26% of global emissions and you're leading the way.",
+      "Oxford University research shows a primarily plant-based diet can cut food-related emissions by up to 60%. Every mindful meal counts.",
+      "Minimising food waste is critically important — food in landfill produces methane that is 84× more potent than CO₂ in the short term.",
+    ],
+    improve:[
+      {th:8,t:"Buying local and seasonal produce reduces the transport and storage emissions embedded in your food — often at lower cost too."},
+      {th:7,t:"Reducing red meat to once a week or less is nearly 9× more impactful than reducing packaged goods, according to World Resources Institute data."},
+      {th:6,t:"Meal planning and batch cooking dramatically cuts food waste — and wasted food is one of the most underrated individual climate issues."},
+      {th:6,t:"Dairy alternatives (oat, soy, almond milk) have significantly lower emissions than cow's milk — a simple daily swap adds up over a year."},
+      {th:5,t:"'Meatless Monday' is a well-researched entry point — just one meat-free day a week can save around 360kg CO₂ per year per person."},
+      {th:5,t:"Beans, lentils, tofu, and eggs are high-protein, low-footprint alternatives to red meat — with significant health benefits too."},
+      {th:4,t:"Food waste accounts for ~8% of global greenhouse gas emissions. A weekly 'use it up' cooking session can nearly eliminate yours."},
+      {th:4,t:"Choosing chicken or fish over beef cuts emissions by 5–10× per meal — even partial shifts away from red meat are highly effective."},
+      {th:3,t:"Going vegetarian is nearly 3× more impactful for the climate than reducing food waste, per World Resources Institute research."},
+      {th:0,t:"Diet is one of the highest-leverage individual climate actions. Even halving beef consumption would have a significant, measurable effect."},
+    ],
+  },
+  water:{
+    great:[
+      "Excellent water habits! Treating, pumping, and heating water uses significant energy — your efficiency directly reduces your carbon footprint too.",
+      "A full bathtub uses ~70 gallons vs 10–25 gallons for a shower — your habits are saving thousands of litres every year.",
+      "Fixing leaks and running appliances on full loads are among the most effective household water-saving actions — great that you're on top of this.",
+    ],
+    improve:[
+      {th:8,t:"Installing a low-flow showerhead can reduce water use by up to 50% with no noticeable difference in experience — widely available and inexpensive."},
+      {th:7,t:"A dripping tap can waste over 5,000 litres of water a year. Checking and fixing leaks regularly takes minutes but has a lasting impact."},
+      {th:6,t:"Showers use 10–25 gallons; a bath uses about 70 gallons. Switching from baths to showers saves an estimated 60 gallons per person per day."},
+      {th:6,t:"Only run dishwashers and washing machines on full loads — washing two half-loads uses significantly more water and energy than one full load."},
+      {th:5,t:"Turning off the tap while brushing teeth can save up to 8 gallons of water per day — around 3,000 litres per person annually."},
+      {th:5,t:"Collecting rainwater in a water butt for garden use is free, simple to set up, and eliminates treated water being used on plants."},
+      {th:4,t:"Cold water washing (30°C) is as effective as hot for most laundry and uses up to 40% less energy — a straightforward habit to adopt."},
+      {th:4,t:"Pumping, treating, and heating water requires significant electricity — often from fossil fuels. Using less water directly reduces your carbon footprint."},
+      {th:3,t:"Water-efficient shower heads and tap aerators are inexpensive and can cut household water use by 30–50% with no lifestyle sacrifice."},
+      {th:0,t:"The UN projects a 40% global water shortfall by 2030. Household conservation matters — starting with just shorter showers builds the habit quickly."},
+    ],
+  },
+  waste:{
+    great:[
+      "Excellent waste habits! Proper segregation keeps recyclables clean and maximises how much material is actually recovered and reused.",
+      "Composting food waste is one of the best individual actions — food in landfill produces methane which is 84× more potent than CO₂ in the short term.",
+      "Separating batteries keeps toxic heavy metals like mercury and cadmium out of the environment — a critical action most households miss.",
+    ],
+    improve:[
+      {th:8,t:"Rinsing containers before recycling is crucial — contaminated items can ruin an entire batch of recyclables at the sorting facility."},
+      {th:7,t:"Starting a food caddy or compost bin for organic waste is the single highest-impact waste habit most households are missing."},
+      {th:6,t:"Batteries must never go in general waste — most supermarkets have a free battery collection point near the entrance."},
+      {th:6,t:"Glass is 100% recyclable endlessly without quality loss — always separate it rather than sending it to landfill."},
+      {th:5,t:"Check your local council website for exactly what's accepted in kerbside bins — the rules vary significantly by area."},
+      {th:5,t:"Paper and cardboard recycling saves around 17 trees per tonne — a labelled cardboard box next to your bin is all you need to start."},
+      {th:4,t:"Food scraps in landfill break down without oxygen and create methane. Even a small countertop compost bin makes a real difference."},
+      {th:4,t:"Separating just paper, glass, and plastic could divert the majority of your household waste from landfill immediately."},
+      {th:3,t:"Many councils offer free or subsidised compost bins and food caddies — worth checking before you buy one."},
+      {th:0,t:"Starting with just one waste stream — like paper — builds the habit naturally and has a meaningful impact from day one."},
+    ],
+  },
+  actions:{
+    great:[
+      "Going above and beyond with green actions like yours multiplies your impact far beyond individual habits alone — brilliant commitment.",
+      "Upcycling requires far less energy than recycling and keeps materials in active use. Repurposing clothes instead of buying new reduces emissions by ~25% per item.",
+      "Environmental and sustainability group membership amplifies your individual impact enormously through collective action and advocacy.",
+    ],
+    improve:[
+      {th:8,t:"Your local recycling centre accepts items kerbside collections miss — e-waste, textiles, metals, and large items can all find new life there."},
+      {th:7,t:"The fashion industry accounts for over 8% of global greenhouse gas emissions — donating clothes directly reduces demand for new production."},
+      {th:6,t:"Repurposing clothes instead of buying new reduces emissions by an average of 25% per item and saves approximately 3kg CO₂ per garment."},
+      {th:6,t:"Upcycling uses far less energy than manufacturing new items or even recycling old ones — it sits at the very top of the waste hierarchy."},
+      {th:5,t:"Apps like Vinted, Freecycle, and Facebook Marketplace make donating or selling old items quick and completely free."},
+      {th:5,t:"Local repair cafés fix electronics, clothing, and furniture for free or low cost — keeping items out of landfill and saving you money."},
+      {th:4,t:"Environmental groups — local litter-picks, wildlife trusts, climate campaigns — amplify your impact beyond what any individual can achieve alone."},
+      {th:4,t:"Buying just 8 new clothing items a year instead of the typical 27 could reduce fashion's emissions by 37% — quality over quantity matters enormously."},
+      {th:3,t:"Community tool libraries and sharing schemes reduce the need for everyone to own rarely-used items — check if one exists near you."},
+      {th:0,t:"Even one action from this list — a single recycling centre trip, one donated bag — creates genuine, measurable environmental benefit."},
+    ],
+  },
+};
+
+const getTips = (catId, score) => {
+  const pool = TIPS[catId];
+  if (!pool) return { great:[], improve:[] };
+  if (score >= 7) return { great: pool.great, improve: [] };
+  const count = score >= 5 ? 3 : score >= 3 ? 4 : 5;
+  return { great: [], improve: pool.improve.filter(t=>score<t.th).slice(0,count).map(t=>t.t) };
+};
+
+// ─── CONDITIONAL LOGIC ────────────────────────────────────────────────────────
+// Returns {locked: bool, reason: string} for a given question based on current answers
+const getQuestionLock = (catId, qId, answers) => {
+  const ans = answers[catId] || {};
+
+  // Heating: if "I don't use heating" → lock power tariff and timer
+  if (catId === "heating") {
+    if ((qId === "power" || qId === "timer") && ans.source === 10) {
+      // score 10 = "I don't use heating"
+      return { locked: true, reason: "Not applicable — you selected that you don't use heating." };
+    }
+  }
+
+  // Vehicle: if "I don't drive" (score 10) → lock mileage and manufacture year
+  if (catId === "vehicle") {
+    if ((qId === "mileage" || qId === "mfr_year") && ans.type === 10) {
+      return { locked: true, reason: "Not applicable — you don't drive.", autoScore: 9 };
+    }
+  }
+
+  return { locked: false };
+};
+
+// Returns true if a specific OPTION within a multi or single question should be greyed
+// based on other answers in the same category
+const isOptionDisabled = (catId, qId, optLabel, optScore, answers) => {
+  const ans = answers[catId] || {};
+
+  // ── VEHICLE SECTION ──────────────────────────────────────────────────────
+  if (catId === "vehicle") {
+    const vehicleType = ans.type; // score of selected vehicle type option
+    const NO_CAR = 10;      // "I don't drive / don't own a car"
+    const EV = 9;           // Fully electric
+    const PHEV = 7;         // Plug-in hybrid
+    const HYBRID = 6;       // Standard hybrid
+    const PETROL = 4;
+    const DIESEL = 3;
+    const VAN = 1;
+
+    // Mileage & year — lock ALL options when no car (whole question locked via getQuestionLock)
+    if ((qId === "mileage" || qId === "mfr_year") && vehicleType === NO_CAR) {
+      return true;
+    }
+
+    // Manufacture year — EV: can't be before 2011 (Nissan Leaf first UK EV 2011)
+    if (qId === "mfr_year" && vehicleType === EV) {
+      const preEVOptions = [
+        "2006–2010 (Euro 4, high emissions, ULEZ non-compliant)",
+        "Before 2006 (Euro 1–3, very high emissions)",
+        // Also disable pre-2011 within 2011–2014 band? No — 2011 is IN that band so keep it
+      ];
+      if (preEVOptions.includes(optLabel)) return true;
+    }
+
+    // Manufacture year — PHEV: can't be before 2012 (first PHEVs UK 2012)
+    if (qId === "mfr_year" && vehicleType === PHEV) {
+      const prePHEVOptions = [
+        "2006–2010 (Euro 4, high emissions, ULEZ non-compliant)",
+        "Before 2006 (Euro 1–3, very high emissions)",
+      ];
+      if (prePHEVOptions.includes(optLabel)) return true;
+    }
+
+    // Manufacture year — Standard hybrid: can't be before 2000 (Prius arrived UK 2000)
+    // Before 2006 band predates mass-market hybrids — disable it
+    if (qId === "mfr_year" && vehicleType === HYBRID) {
+      if (optLabel === "Before 2006 (Euro 1–3, very high emissions)") return true;
+    }
+
+    // Manufacture year — Petrol/Diesel/Van: all years valid, no restrictions
+
+    // Manufacture year — 2026 "Euro 7" option only valid for EV, PHEV, Hybrid, or petrol/diesel
+    // manufactured this year (all valid), so no restriction needed here
+
+    // Mileage — if no car selected as type, "I don't drive" on mileage is the only valid option
+    // (handled above). For drivers, all mileage options valid.
+  }
+
+  // ── WASTE SECTION ────────────────────────────────────────────────────────
+  if (catId === "waste" && qId === "streams") {
+    const sel = ans.streams || [];
+    const generalWasteLabel = "🗑️ General waste bin only — I don't separate anything";
+    const generalSelected = sel.some(o => o.label === generalWasteLabel);
+    const recyclingSelected = sel.some(o => o.label !== generalWasteLabel);
+    if (generalSelected && optLabel !== generalWasteLabel) return true;
+    if (recyclingSelected && optLabel === generalWasteLabel) return true;
+  }
+
+  // ── GREEN ACTIONS SECTION ────────────────────────────────────────────────
+  if (catId === "actions" && qId === "extras") {
+    const sel = ans.extras || [];
+    if (sel.some(o => o.label === "None of the above") && optLabel !== "None of the above") return true;
+    if (sel.length > 0 && !sel.some(o => o.label === "None of the above") && optLabel === "None of the above") return true;
+  }
+
+  // ── LIGHTING SECTION ─────────────────────────────────────────────────────
+  // If "All LED bulbs throughout the home" selected → "Mostly LED" is redundant
+  if (catId === "heating" && qId === "lighting" && ans.lighting === 10) {
+    if (optScore === 7) return true;
+  }
+
+  return false;
+};
+
+// ─── CATEGORIES ───────────────────────────────────────────────────────────────
+const categories = [
+  {
+    id:"heating", label:"Home Heating & Energy", icon:"💡", accent:"#f4a261",
+    intro:"Let's look at how you heat your home, power it, and manage your lighting and energy use.",
+    questions:[
+      {id:"source",text:"How do you heat your home?",type:"single",options:[
+        {label:"Fully electric (heat pump, storage heaters, etc.)",score:9},
+        {label:"Gas only",score:4},
+        {label:"Both electric and gas",score:5},
+        {label:"Oil, solid fuel or other",score:2},
+        {label:"I don't use heating",score:10},
+      ]},
+      {id:"power",text:"What energy tariff or source powers your home?",type:"single",options:[
+        {label:"🌿 Green certificate (REGO-backed renewable)",score:10},
+        {label:"🌾 Bioenergy (biomass or biogas supplier)",score:8},
+        {label:"☀️ Solar panels or wind (self-generated)",score:10},
+        {label:"🌱 Green tariff from my energy supplier",score:7},
+        {label:"⚡ Standard grid electricity (no green tariff)",score:4},
+        {label:"🔥 Gas, oil or coal as primary energy",score:2},
+        {label:"🤷 I'm not sure what my tariff is",score:3},
+      ]},
+      {id:"timer",text:"Do you use timers or smart controls for your heating?",type:"single",options:[
+        {label:"Yes — smart thermostat with automatic schedules",score:10},
+        {label:"Yes — basic timer controls",score:7},
+        {label:"Sometimes, but not consistently",score:4},
+        {label:"No — I control it manually as needed",score:2},
+        {label:"No — it runs constantly",score:1},
+      ]},
+      {id:"lighting",text:"What type of bulbs do you use at home?",type:"single",options:[
+        {label:"All LED bulbs throughout the home",score:10},
+        {label:"Mostly LED, a few older bulbs remaining",score:7},
+        {label:"A mix of LED and older bulbs",score:4},
+        {label:"Mostly older incandescent or halogen bulbs",score:1},
+      ]},
+      {id:"lighting_control",text:"Do you use automatic lighting controls?",type:"single",options:[
+        {label:"PIR motion sensors — lights on when needed, off when not",score:10},
+        {label:"Light sensitive / daylight sensors — adjust to natural light",score:9},
+        {label:"Both PIR and light sensitive sensors",score:10},
+        {label:"Smart lighting system (e.g. Philips Hue, app controlled)",score:8},
+        {label:"Neither — I switch lights on and off manually",score:5},
+        {label:"Other automatic control",score:7},
+      ]},
+
+    ],
+  },
+  {
+    id:"vehicle", label:"Vehicle Type", icon:"🚗", accent:"#e76f51",
+    intro:"Tell us about the main vehicle you use, if any.",
+    questions:[
+      {id:"type",text:"What type of vehicle do you primarily drive?",type:"single",options:[
+        {label:"I don't drive / don't own a car",score:10},
+        {label:"Fully electric vehicle (EV)",score:9},
+        {label:"Plug-in hybrid (PHEV)",score:7},
+        {label:"Standard hybrid",score:6},
+        {label:"Petrol car",score:4},
+        {label:"Diesel car",score:3},
+        {label:"Van or large petrol/diesel vehicle",score:1},
+      ]},
+      {id:"mileage",text:"How far do you typically drive each week?",type:"single",options:[
+        {label:"Under 50 miles",score:9},
+        {label:"50–150 miles",score:7},
+        {label:"150–300 miles",score:4},
+        {label:"Over 300 miles",score:2},
+      ]},
+      {id:"mfr_year",text:"What year was your vehicle manufactured?",type:"single",options:[
+        {label:"2026 — this year (Euro 7, latest standards)",score:10},
+        {label:"2022–2025 (Euro 6d, very low real-world emissions)",score:9},
+        {label:"2019–2021 (Euro 6d-temp / RDE tested)",score:8},
+        {label:"2015–2018 (Euro 6, meets ULEZ/Clean Air Zone standards)",score:6},
+        {label:"2011–2014 (Euro 5, fails most Clean Air Zones)",score:3},
+        {label:"2006–2010 (Euro 4, high emissions, ULEZ non-compliant)",score:2},
+        {label:"Before 2006 (Euro 1–3, very high emissions)",score:1},
+      ]},
+    ],
+  },
+  {
+    id:"transport", label:"Getting Around", icon:"🚲", accent:"#2a9d8f",
+    intro:"How do you move around day-to-day beyond your car?",
+    questions:[
+      {id:"public",text:"How often do you use public transport (bus, train, tram)?",type:"single",options:[
+        {label:"Daily or most days",score:10},
+        {label:"A few times a week",score:8},
+        {label:"Occasionally",score:5},
+        {label:"Rarely or never",score:2},
+      ]},
+      {id:"walking",text:"How often do you walk for journeys you could otherwise drive?",type:"single",options:[
+        {label:"Almost always — it's my first choice",score:10},
+        {label:"Often, for shorter trips",score:8},
+        {label:"Sometimes",score:5},
+        {label:"Rarely — I default to the car",score:2},
+      ]},
+      {id:"cycling",text:"How often do you cycle?",type:"single",options:[
+        {label:"Regularly — it's part of my routine",score:10},
+        {label:"Occasionally for leisure or errands",score:7},
+        {label:"Rarely",score:4},
+        {label:"Never",score:2},
+      ]},
+    ],
+  },
+  {
+    id:"diet", label:"Food & Diet", icon:"🥗", accent:"#8bc34a",
+    intro:"Diet is one of the highest-impact areas for your personal carbon footprint — food systems account for 26% of global emissions.",
+    questions:[
+      {id:"meat",text:"How often do you eat red meat (beef, lamb, pork)?",type:"single",options:[
+        {label:"Never — I'm vegan or vegetarian",score:10},
+        {label:"Rarely — a few times a month or less",score:8},
+        {label:"Once or twice a week",score:6},
+        {label:"Most days",score:3},
+        {label:"Every day or more than once a day",score:1},
+      ]},
+      {id:"food_waste",text:"How much food do you typically throw away each week?",type:"single",options:[
+        {label:"Almost none — I plan meals and use everything up",score:10},
+        {label:"A small amount occasionally",score:7},
+        {label:"Some most weeks",score:4},
+        {label:"Quite a bit — I often throw food away",score:1},
+      ]},
+      {id:"local",text:"How often do you choose local or seasonal produce?",type:"single",options:[
+        {label:"Almost always — it's a priority for me",score:10},
+        {label:"Often, when available and convenient",score:7},
+        {label:"Occasionally",score:4},
+        {label:"Rarely or never",score:2},
+      ]},
+    ],
+  },
+  {
+    id:"water", label:"Water Use", icon:"💧", accent:"#38bdf8",
+    intro:"Pumping, treating, and heating water uses significant energy. Your water habits have a bigger carbon impact than most people realise.",
+    questions:[
+      {id:"shower",text:"What are your typical bathing habits?",type:"single",options:[
+        {label:"Short showers under 5 minutes, most days",score:10},
+        {label:"Showers of around 5–10 minutes",score:7},
+        {label:"Long showers (10+ minutes) regularly",score:4},
+        {label:"Baths most days",score:2},
+        {label:"Mix of long showers and regular baths",score:1},
+      ]},
+      {id:"appliances",text:"How do you use your washing machine and tumble dryer?",type:"single",options:[
+        {label:"Full loads only, cold wash, no tumble dryer",score:10},
+        {label:"Full loads, cold or low temp wash, tumble dryer rarely used",score:8},
+        {label:"Usually full loads, standard temperature wash",score:6},
+        {label:"Sometimes half loads, standard temperature",score:3},
+        {label:"Half loads regularly, tumble dryer used frequently",score:1},
+      ]},
+      {id:"habits",text:"How mindful are you about general water use?",type:"single",options:[
+        {label:"Very — I turn off taps, fix leaks, collect rainwater",score:10},
+        {label:"Reasonably careful about it",score:7},
+        {label:"Occasionally think about it",score:4},
+        {label:"Not something I've focused on",score:2},
+      ]},
+    ],
+  },
+  {
+    id:"waste", label:"Waste Sorting", icon:"♻️", accent:"#57cc99",
+    intro:"Tell us how you sort and manage your household waste.",
+    questions:[
+      {id:"streams",text:"Which of the following do you use at home? Select all that apply.",type:"multi",
+        options:[
+          {label:"📦 Cardboard & paper recycling",score:1.2},
+          {label:"🍾 Glass recycling",score:1.2},
+          {label:"🌿 Food / organic waste (compost or caddy)",score:1.8},
+          {label:"🔋 Battery recycling",score:1.8},
+          {label:"🧴 Plastic recycling",score:1.2},
+          {label:"📫 Dry mixed recycling bin",score:1.2},
+          {label:"🗑️ General waste bin only — I don't separate anything",score:0},
+        ],
+        maxScore:8.4,
+      },
+    ],
+  },
+  {
+    id:"actions", label:"Green Actions", icon:"🌱", accent:"#4caf50",
+    intro:"Do you go beyond the basics with any of these eco activities?",
+    questions:[
+      {id:"extras",text:"Which of these do you do? (select all that apply)",type:"multi",
+        options:[
+          {label:"🚛 Take items to the recycling centre / tip",score:2.5},
+          {label:"🔧 Upcycle or repurpose items rather than discarding",score:2.5},
+          {label:"👕 Donate old clothes and equipment",score:2.5},
+          {label:"🌍 Member of an environmental or sustainability group",score:2.5},
+          {label:"None of the above",score:0},
+        ],
+        maxScore:10,
+      },
+    ],
+  },
+];
+
+// ─── SCORE ────────────────────────────────────────────────────────────────────
+const computeCatScore = (cat, answers) => {
+  const ans = answers[cat.id] || {};
+  const vals = cat.questions.map(q => {
+    const lockInfo = getQuestionLock(cat.id, q.id, answers);
+    // Locked questions (N/A) score 10 — not penalised for things beyond their control
+    if(lockInfo.locked) return lockInfo.autoScore !== undefined ? lockInfo.autoScore : 10;
+    const a = ans[q.id];
+    if (q.type==="single") return a??0;
+    const nL=["None of the above","🗑️ General waste bin only — I don't separate anything"];
+    if(!Array.isArray(a)||a.length===0||a.some(o=>nL.includes(o.label))) return 0;
+    return Math.min(10,(a.reduce((s,o)=>s+o.score,0)/(q.maxScore||10))*10);
+  });
+  return vals.reduce((s,v)=>s+v,0)/vals.length;
+};
+
+// ─── EMAIL HTML ───────────────────────────────────────────────────────────────
+const buildEmailHTML = (scores, allCats) => {
+  const vals=Object.values(scores);
+  const overall=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const og=getGrade(overall);
+  const mini=allCats.map(c=>{const s=scores[c.id]||0;const g=getGrade(s);return`<div style="background:#f5f5f5;border-radius:8px;padding:6px 10px;text-align:center;"><div>${c.icon}</div><div style="font-size:16px;font-weight:bold;color:${g.color};">${g.letter}</div><div style="font-size:10px;color:#999;">${c.label}</div></div>`;}).join("");
+  const rows=allCats.map(c=>{
+    const s=scores[c.id]||0;const g=getGrade(s);
+    const{great,improve}=getTips(c.id,s);
+    const tips=great.length?great:improve;
+    const tipLabel=great.length?"✅ What you're doing well":"💡 Tips to improve";
+    const tipsHtml=tips.map(t=>`<li style="margin-bottom:8px;color:#444;font-size:14px;line-height:1.6;">${t}</li>`).join("");
+    return`<div style="background:#f9fafb;border-radius:12px;padding:20px;margin-bottom:18px;border-left:4px solid ${c.accent};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span><span style="font-size:20px;">${c.icon}</span><strong style="font-size:16px;color:#222;margin-left:8px;">${c.label}</strong></span>
+        <div style="background:${g.bg};border:2px solid ${g.color}55;border-radius:8px;padding:4px 12px;text-align:center;"><div style="font-size:20px;font-weight:bold;color:${g.color};line-height:1;">${g.letter}</div><div style="font-size:11px;color:#888;">${s.toFixed(1)}/10</div></div>
+      </div>
+      <div style="background:#e0e0e0;border-radius:100px;height:6px;margin-bottom:14px;"><div style="width:${s*10}%;height:100%;border-radius:100px;background:${c.accent};"></div></div>
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">${tipLabel}</div>
+      <ul style="margin:0;padding-left:20px;">${tipsHtml}</ul>
+    </div>`;
+  }).join("");
+  return`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f0f4f0;font-family:Georgia,serif;">
+<div style="max-width:620px;margin:40px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#0b1f14,#1a4a2e);padding:40px 32px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:8px;">🌍</div>
+    <h1 style="color:#a8d5a2;font-size:26px;font-weight:normal;margin:0 0 6px;">Your Eco Self-Survey Results</h1>
+    <p style="color:#78b87a;font-size:14px;margin:0;">A full breakdown of your environmental habits across 7 key areas, with personalised tips.</p>
+  </div>
+  <div style="padding:32px;">
+    <div style="text-align:center;background:${og.bg};border:2px solid ${og.color}44;border-radius:16px;padding:28px;margin-bottom:32px;">
+      <div style="font-size:40px;">${og.emoji}</div>
+      <div style="font-size:56px;font-weight:bold;color:${og.color};line-height:1;">${og.letter}</div>
+      <div style="font-size:16px;color:#555;margin:6px 0 4px;font-style:italic;">${og.label}</div>
+      <div style="font-size:14px;color:#777;margin-bottom:14px;">Overall score: <strong style="color:${og.color};">${overall.toFixed(1)}</strong> / 10</div>
+      <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">${mini}</div>
+      <p style="color:#555;font-size:14px;line-height:1.7;margin:0;">${getOverallMsg(overall)}</p>
+    </div>
+    <h2 style="font-size:18px;color:#222;font-weight:normal;margin:0 0 20px;">Your results by area</h2>
+    ${rows}
+    <div style="text-align:center;margin-top:30px;padding-top:24px;border-top:1px solid #eee;">
+      <p style="color:#bbb;font-size:12px;line-height:1.7;margin:0;">Generated by Eco Self-Survey · Retake the survey at any time to track your progress.<br>Small changes, consistently applied, make a real and lasting difference. 🌿</p>
+    </div>
+  </div>
+</div></body></html>`;
+};
+
+
+// ─── DOWNLOAD / EXPORT HANDLER ────────────────────────────────────────────────
+const handleDownload = (format, scores, overallAvg, og, categories, email, setPhase) => {
+
+  const getTipsLocal = (catId, score) => {
+    const pool = TIPS[catId];
+    if (!pool) return { great:[], improve:[] };
+    if (score >= 7) return { great: pool.great, improve: [] };
+    const count = score >= 5 ? 3 : score >= 3 ? 4 : 5;
+    return { great: [], improve: pool.improve.filter(t=>score<t.th).slice(0,count).map(t=>t.t) };
+  };
+
+  const triggerDownload = (filename, fileContent, mimeType) => {
+    const blob = new Blob([fileContent], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  };
+
+  const date = new Date().toLocaleDateString('en-GB');
+  const vals = Object.values(scores);
+  const overall = vals.reduce((a,b)=>a+b,0)/vals.length;
+
+  // ── EMAIL ──────────────────────────────────────────────────────────────────
+  if (format === 'email') {
+    setPhase('email_prompt_yes');
+    return;
+  }
+
+  // ── CSV ────────────────────────────────────────────────────────────────────
+  if (format === 'csv') {
+    const rows = [
+      ['Eco Self-Survey Results', date],
+      [''],
+      ['Category', 'Score (/10)', 'Grade', 'Label'],
+      ...categories.map(c => {
+        const s = scores[c.id] || 0;
+        const g = getGrade(s);
+        return [c.label, s.toFixed(1), g.letter, g.label];
+      }),
+      [''],
+      ['OVERALL', overall.toFixed(1), og.letter, og.label],
+      [''],
+      ['Category', 'Tips'],
+      ...categories.flatMap(c => {
+        const s = scores[c.id] || 0;
+        const { great, improve } = getTipsLocal(c.id, s);
+        const tips = great.length ? great : improve;
+        return tips.map((t, i) => [i === 0 ? c.label : '', t]);
+      }),
+    ];
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+    triggerDownload('eco-survey-results.csv', csv, 'text/csv;charset=utf-8;');
+    return;
+  }
+
+  // ── TEXT ───────────────────────────────────────────────────────────────────
+  if (format === 'txt') {
+    let txt = `ECO SELF-SURVEY RESULTS\n`;
+    txt += `${'='.repeat(42)}\n`;
+    txt += `Date: ${date}\n`;
+    txt += `Overall Grade: ${og.letter} — ${og.label} (${overall.toFixed(1)}/10)\n\n`;
+    categories.forEach(c => {
+      const s = scores[c.id] || 0;
+      const g = getGrade(s);
+      const { great, improve } = getTipsLocal(c.id, s);
+      const tips = great.length ? great : improve;
+      txt += `${'─'.repeat(42)}\n`;
+      txt += `${c.icon} ${c.label}\n`;
+      txt += `Grade: ${g.letter} — ${g.label} (${s.toFixed(1)}/10)\n\n`;
+      txt += great.length ? `What you're doing well:\n` : `Tips to improve:\n`;
+      tips.forEach(t => { txt += `  • ${t}\n`; });
+      txt += `\n`;
+    });
+    txt += `${'='.repeat(42)}\n`;
+    txt += `Generated by Eco Self-Survey · ${date}\n`;
+    txt += `Small changes, consistently applied, make a real and lasting difference. 🌿\n`;
+    triggerDownload('eco-survey-results.txt', txt, 'text/plain;charset=utf-8;');
+    return;
+  }
+
+  // ── HTML ───────────────────────────────────────────────────────────────────
+  if (format === 'html') {
+    const html = buildEmailHTML(scores, categories);
+    triggerDownload('eco-survey-results.html', html, 'text/html;charset=utf-8;');
+    return;
+  }
+
+  // ── PDF ────────────────────────────────────────────────────────────────────
+  // We generate a clean print-ready HTML file and download it.
+  // User opens the file in their browser then uses Ctrl+P / Cmd+P → Save as PDF.
+  if (format === 'pdf') {
+    const catHtml = categories.map(c => {
+      const s = scores[c.id] || 0;
+      const g = getGrade(s);
+      const { great, improve } = getTipsLocal(c.id, s);
+      const tips = great.length ? great : improve;
+      const tipLabel = great.length ? "&#10003; What you're doing well" : "&#128161; Tips to improve";
+      const tipsHtml = tips.map(t => `<li>${t}</li>`).join('');
+      return `
+        <div class="cat">
+          <div class="cat-top" style="border-left:4px solid ${c.accent}">
+            <div class="cat-name"><span>${c.icon}</span> ${c.label}</div>
+            <div class="badge" style="color:${g.color};border-color:${g.color};background:${g.bg}">
+              <div class="grade">${g.letter}</div>
+              <div class="gscore">${s.toFixed(1)}/10</div>
+            </div>
+          </div>
+          <div class="bar"><div class="fill" style="width:${s*10}%;background:${c.accent}"></div></div>
+          <div class="tip-lbl">${tipLabel}</div>
+          <ul>${tipsHtml}</ul>
+        </div>`;
+    }).join('');
+
+    const mini = categories.map(c => {
+      const s = scores[c.id]||0; const g = getGrade(s);
+      return `<div class="mini"><span>${c.icon}</span><b style="color:${g.color}">${g.letter}</b><small>${c.label}</small></div>`;
+    }).join('');
+
+    const pdfContent = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Eco Survey Results</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,serif;color:#222;padding:2rem;max-width:750px;margin:0 auto;font-size:14px}
+@media print{.no-print{display:none!important}.cat{page-break-inside:avoid}}
+.no-print{text-align:center;margin-bottom:1.5rem}
+.print-btn{padding:.7rem 2rem;background:#2d7a4f;color:#fff;border:none;border-radius:100px;font-size:1rem;cursor:pointer;font-family:Georgia,serif}
+.print-note{font-size:.78rem;color:#888;margin-top:.5rem}
+.header{background:linear-gradient(135deg,#0b1f14,#1a4a2e);color:#a8d5a2;padding:1.75rem;border-radius:12px;text-align:center;margin-bottom:1.25rem}
+.header h1{font-size:1.6rem;font-weight:normal;margin-bottom:.2rem}
+.header .dt{color:#78b87a;font-size:.8rem}
+.overall{text-align:center;border:2px solid ${og.color}44;background:${og.bg};border-radius:12px;padding:1.5rem;margin-bottom:1.25rem}
+.ol-letter{font-size:4rem;font-weight:bold;color:${og.color};line-height:1}
+.ol-label{font-style:italic;color:#555;margin:.25rem 0 .1rem}
+.ol-score{font-size:.85rem;color:#777;margin-bottom:.75rem}
+.ol-msg{font-size:.85rem;color:#555;line-height:1.6;max-width:460px;margin:0 auto}
+.minis{display:flex;justify-content:center;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem}
+.mini{background:#f5f5f5;border-radius:6px;padding:.3rem .5rem;text-align:center;min-width:52px;display:flex;flex-direction:column;align-items:center}
+.mini span{font-size:.9rem}.mini b{font-size:.9rem}.mini small{font-size:.5rem;color:#999}
+h2{font-size:1rem;font-weight:normal;color:#333;margin-bottom:.75rem;border-bottom:1px solid #eee;padding-bottom:.4rem}
+.cat{border:1px solid #e8e8e8;border-radius:10px;padding:1rem;margin-bottom:.85rem}
+.cat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;padding-left:.5rem}
+.cat-name{font-weight:bold;font-size:.95rem;display:flex;align-items:center;gap:.4rem}
+.badge{border:2px solid;border-radius:7px;padding:.25rem .6rem;text-align:center}
+.grade{font-size:1.4rem;font-weight:bold;line-height:1}
+.gscore{font-size:.6rem;color:#888}
+.bar{background:#eee;border-radius:100px;height:5px;margin-bottom:.75rem}
+.fill{height:100%;border-radius:100px}
+.tip-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:.4rem}
+ul{padding-left:1.1rem}
+li{font-size:.82rem;color:#444;line-height:1.55;margin-bottom:.25rem}
+.footer{text-align:center;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #eee;color:#bbb;font-size:.72rem;line-height:1.6}
+</style></head><body>
+<div class="no-print">
+  <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  <div class="print-note">In the print dialog, choose "Save as PDF" as the destination</div>
+</div>
+<div class="header"><div style="font-size:2rem;margin-bottom:.4rem">🌍</div><h1>Eco Self-Survey Results</h1><div class="dt">${date}</div></div>
+<div class="overall">
+  <div class="ol-letter">${og.letter}</div>
+  <div class="ol-label">${og.label}</div>
+  <div class="ol-score">Overall score: ${overall.toFixed(1)} / 10</div>
+  <div class="minis">${mini}</div>
+  <div class="ol-msg">${getOverallMsg(overall)}</div>
+</div>
+<h2>Your results by area</h2>
+${catHtml}
+<div class="footer">Generated by Eco Self-Survey &nbsp;·&nbsp; ${date}<br>Small changes, consistently applied, make a real and lasting difference. 🌿</div>
+</body></html>`;
+
+    triggerDownload('eco-survey-results-print.html', pdfContent, 'text/html;charset=utf-8;');
+    return;
+  }
+};
+
+
+// ─── SHARED STYLES ────────────────────────────────────────────────────────────
+const FONT="'Palatino Linotype','Book Antiqua',Palatino,serif";
+const BG={minHeight:"100vh",background:"linear-gradient(145deg,#0b1f14 0%,#132b1c 55%,#0a1c12 100%)",fontFamily:FONT,color:"#dcefd8"};
+
+const scrollTop = () => window.scrollTo({top:0,behavior:"smooth"});
+
+// Scroll so the next question appears at the very top of the viewport
+const scrollToQuestion = (qIndex) => {
+  setTimeout(() => {
+    const el = document.getElementById("question-" + qIndex);
+    if (el) {
+      // Get the element's position relative to the document (not viewport)
+      let top = 0;
+      let node = el;
+      while (node) {
+        top += node.offsetTop || 0;
+        node = node.offsetParent;
+      }
+      // Scroll so the question sits right at the top with just a little breathing room
+      window.scrollTo({ top: top - 16, behavior: "smooth" });
+    }
+  }, 100);
+};
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
+function EcoSurvey() {
+  // phases: email | survey | results | email_prompt | emailing | done_email | no_email | closed
+  const [phase,setPhase]           = useState("email");
+  const [email,setEmail]           = useState("");
+  const [emailErr,setEmailErr]     = useState("");
+  const [catIndex,setCatIndex]     = useState(0);
+  const [answers,setAnswers]       = useState({});
+  const [scores,setScores]         = useState({});
+  const [fading,setFading]         = useState(false);
+  const [okChecked,setOkChecked]   = useState(false);
+  const [sending,setSending]       = useState(false);
+  const topRef = useRef(null);
+
+  const cat        = categories[catIndex];
+  const catAnswers = answers[cat?.id]||{};
+  const isLast     = catIndex===categories.length-1;
+
+  const allAnswered = cat?.questions.every(q=>{
+    const lockInfo = getQuestionLock(cat.id, q.id, answers);
+    // Locked questions are automatically satisfied
+    if(lockInfo.locked) return true;
+    const a=catAnswers[q.id];
+    return q.type==="multi"?Array.isArray(a)&&a.length>0:a!==undefined;
+  });
+
+  // Scroll to top of page on every phase/page change
+  useEffect(()=>{
+    scrollTop();
+    if(topRef.current) topRef.current.scrollIntoView({behavior:"smooth"});
+  },[phase,catIndex]);
+
+  const setSingle=(cId,qId,score,qIndex,totalQ)=>{
+    setAnswers(p=>({...p,[cId]:{...(p[cId]||{}),[qId]:score}}));
+    // Scroll to next question if there is one
+    if(qIndex !== undefined && qIndex < totalQ - 1) {
+      scrollToQuestion(qIndex + 1);
+    }
+  };
+
+  const toggleMulti=(cId,qId,opt,qIndex,totalQ)=>{
+    const prev=answers[cId]?.[qId]||[];
+    const nL=["None of the above","🗑️ General waste bin only — I don't separate anything"];
+    const wasEmpty = prev.length === 0;
+    if(nL.includes(opt.label)){
+      setAnswers(p=>({...p,[cId]:{...(p[cId]||{}),[qId]:prev.some(o=>o.label===opt.label)?[]:[opt]}}));
+      // Scroll to next question when none/general selected (it's a definitive answer)
+      if(qIndex !== undefined && qIndex < totalQ - 1) scrollToQuestion(qIndex + 1);
+      return;
+    }
+    const filtered=prev.filter(o=>!nL.includes(o.label));
+    const exists=filtered.some(o=>o.label===opt.label);
+    setAnswers(p=>({...p,[cId]:{...(p[cId]||{}),[qId]:exists?filtered.filter(o=>o.label!==opt.label):[...filtered,opt]}}));
+    // For multi-select, scroll to next question on FIRST selection only
+    if(wasEmpty && qIndex !== undefined && qIndex < totalQ - 1) scrollToQuestion(qIndex + 1);
+  };
+
+  const goNext=()=>{
+    const s=computeCatScore(cat,answers);
+    setScores(p=>({...p,[cat.id]:s}));
+    setFading(true);
+    setTimeout(()=>{setCatIndex(i=>i+1);setFading(false);},280);
+  };
+
+  const goBack=()=>{
+    setFading(true);
+    setTimeout(()=>{setCatIndex(i=>i-1);setFading(false);},200);
+  };
+
+  const handleSubmit=()=>{
+    const s=computeCatScore(cat,answers);
+    setScores(p=>({...p,[cat.id]:s}));
+    setPhase("results");
+  };
+
+  const sendEmail=async(finalScores)=>{
+    setSending(true);
+    try{
+      const html=buildEmailHTML(finalScores,categories);
+      const vals=Object.values(finalScores);
+      const overall=vals.reduce((a,b)=>a+b,0)/vals.length;
+      const og=getGrade(overall);
+      const res=await fetch("/.netlify/functions/send-email",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          to: email,
+          subject: `🌍 Your Eco Survey Results — Overall Grade: ${og.letter} (${overall.toFixed(1)}/10)`,
+          html,
+        }),
+      });
+      const data=await res.json();
+      setPhase(data.ok?"done_email":"done_email");
+    }catch{setPhase("done_email");}
+    setSending(false);
+  };
+
+  const scoreVals=Object.values(scores);
+  const overallAvg=scoreVals.length?scoreVals.reduce((a,b)=>a+b,0)/scoreVals.length:0;
+  const og=getGrade(overallAvg);
+
+  // ── CLOSED ──
+  if(phase==="closed") return(
+    <div style={{...BG,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center",padding:"3rem 2rem",animation:"rise 0.6s ease"}}>
+        <div style={{fontSize:"4rem",marginBottom:"1rem"}}>🌍</div>
+        <h2 style={{color:"#a8d5a2",fontWeight:"normal",fontSize:"1.8rem",margin:"0 0 1rem"}}>Thanks for taking the survey!</h2>
+        <p style={{color:"#78b87a",fontSize:"1rem",lineHeight:1.7,maxWidth:380,margin:"0 auto"}}>
+          Every small action adds up. Keep making green choices — the planet notices. 🌿
+        </p>
+      </div>
+      <style>{`@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+
+  // ── EMAIL GATE ──
+  if(phase==="email") return(
+    <div style={BG}>
+      <div ref={topRef}/>
+      <div style={{position:"fixed",top:"8%",right:"-8%",width:"min(500px,60vw)",height:"min(500px,60vw)",borderRadius:"50%",background:"radial-gradient(circle,rgba(87,204,153,0.07) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+      <div style={{maxWidth:560,margin:"0 auto",padding:"clamp(1rem,4vw,2rem) clamp(1rem,4vw,1.5rem)",position:"relative",zIndex:1}}>
+        <div style={{textAlign:"center",paddingTop:"clamp(2rem,8vw,4rem)",animation:"rise 0.6s ease"}}>
+          <div style={{fontSize:"clamp(2.5rem,8vw,3.5rem)",marginBottom:"1rem"}}>🌍</div>
+          <h1 style={{fontSize:"clamp(1.6rem,5vw,2.4rem)",fontWeight:"normal",margin:"0 0 0.75rem",color:"#a8d5a2",letterSpacing:"-0.01em",textShadow:"0 0 40px rgba(168,213,162,0.25)"}}>Eco Self-Survey</h1>
+          <p style={{color:"#78b87a",fontSize:"clamp(0.9rem,2.5vw,1rem)",lineHeight:1.75,maxWidth:440,margin:"0 auto 0.4rem"}}>
+            Answer 7 short sections on your home, travel, diet, water and waste habits.
+            Get a <strong style={{color:"#a8d5a2"}}>letter grade in each area</strong> plus an overall score, with researched tips tailored to your answers.
+          </p>
+          <p style={{color:"#4a9b6a",fontSize:"0.88rem",marginBottom:"2rem"}}>Your results can be emailed to you after completing the survey.</p>
+
+          {/* Category icons — responsive grid */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"0.35rem",marginBottom:"2rem"}}>
+            {categories.map((c,i)=>(
+              <div key={c.id} style={{background:"rgba(255,255,255,0.04)",border:`1px solid ${c.accent}33`,borderRadius:10,padding:"0.5rem 0.2rem",textAlign:"center",animation:`rise 0.5s ease ${i*0.06}s both`}}>
+                <div style={{fontSize:"clamp(1rem,3vw,1.3rem)"}}>{c.icon}</div>
+                <div style={{fontSize:"clamp(0.5rem,1.5vw,0.6rem)",color:c.accent,marginTop:"0.2rem",lineHeight:1.2}}>{c.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:"clamp(1.2rem,4vw,2rem)",marginBottom:"1.5rem"}}>
+            <label style={{display:"block",color:"#a8d5a2",fontSize:"0.95rem",marginBottom:"0.75rem",textAlign:"left"}}>
+              📧 Enter your email address
+            </label>
+            <input type="email" value={email}
+              onChange={e=>{setEmail(e.target.value);setEmailErr("");}}
+              onKeyDown={e=>{if(e.key==="Enter"){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setEmailErr("Please enter a valid email address.");return;}setPhase("survey");}}}
+              placeholder="you@example.com"
+              style={{width:"100%",boxSizing:"border-box",background:"rgba(255,255,255,0.07)",border:`1px solid ${emailErr?"#ef4444":"rgba(255,255,255,0.15)"}`,borderRadius:10,padding:"0.85rem 1rem",color:"#dcefd8",fontSize:"1rem",fontFamily:FONT,outline:"none",marginBottom:"0.4rem"}}
+            />
+            {emailErr&&<div style={{color:"#ef4444",fontSize:"0.82rem",marginBottom:"0.4rem",textAlign:"left"}}>{emailErr}</div>}
+            <p style={{color:"#4a7c5a",fontSize:"0.76rem",margin:"0.2rem 0 0",textAlign:"left"}}>🔒 Your email is only used if you choose to receive your results. No marketing, no data stored.</p>
+          </div>
+
+          <button onClick={()=>{
+            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setEmailErr("Please enter a valid email address.");return;}
+            setPhase("survey");
+          }} style={{background:"linear-gradient(135deg,#2d7a4f,#4caf50)",color:"#fff",border:"none",borderRadius:100,padding:"clamp(0.8rem,2.5vw,1rem) clamp(2rem,6vw,3.5rem)",fontSize:"clamp(0.95rem,2.5vw,1.1rem)",cursor:"pointer",fontFamily:FONT,boxShadow:"0 8px 30px rgba(76,175,80,0.35)",letterSpacing:"0.03em",transition:"transform 0.15s,box-shadow 0.15s",width:"100%",maxWidth:320}}
+            onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 12px 40px rgba(76,175,80,0.45)";}}
+            onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 8px 30px rgba(76,175,80,0.35)";}}>
+            Start Survey →
+          </button>
+          <p style={{color:"#4a7c5a",fontSize:"0.78rem",marginTop:"0.9rem"}}>7 sections · ~5 minutes</p>
+        </div>
+      </div>
+      <style>{`@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+
+  // ── SURVEY ──
+  if(phase==="survey") return(
+    <div style={BG}>
+      <div ref={topRef}/>
+      <div style={{maxWidth:680,margin:"0 auto",padding:"clamp(1rem,4vw,2rem) clamp(1rem,4vw,1.25rem)"}}>
+        <div style={{opacity:fading?0:1,transition:"opacity 0.28s ease"}}>
+          {/* progress */}
+          <div style={{marginBottom:"1.5rem"}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:"clamp(0.72rem,2vw,0.82rem)",color:"#78b87a",marginBottom:"0.5rem"}}>
+              <span style={{color:cat.accent}}>{cat.icon} {cat.label}</span>
+              <span>{catIndex+1} / {categories.length}</span>
+            </div>
+            <div style={{height:5,background:"rgba(255,255,255,0.08)",borderRadius:100}}>
+              <div style={{width:`${((catIndex)/categories.length)*100+14}%`,height:"100%",borderRadius:100,background:`linear-gradient(90deg,${cat.accent},${cat.accent}99)`,transition:"width 0.5s ease"}}/>
+            </div>
+            <div style={{display:"flex",gap:"0.3rem",marginTop:"0.55rem",justifyContent:"center"}}>
+              {categories.map((c,i)=>(
+                <div key={c.id} style={{width:i===catIndex?22:8,height:8,borderRadius:100,background:i<catIndex?"#4caf50":i===catIndex?c.accent:"rgba(255,255,255,0.15)",transition:"all 0.3s"}}/>
+              ))}
+            </div>
+          </div>
+
+          <div style={{background:"rgba(255,255,255,0.035)",border:`1px solid ${cat.accent}22`,borderRadius:22,padding:"clamp(1.2rem,4vw,2rem)",backdropFilter:"blur(8px)"}}>
+            <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
+              <div style={{fontSize:"clamp(1.8rem,5vw,2.2rem)"}}>{cat.icon}</div>
+              <p style={{color:"#9ecf9c",fontSize:"clamp(0.85rem,2.5vw,0.92rem)",margin:"0.5rem 0 0",lineHeight:1.6}}>{cat.intro}</p>
+            </div>
+
+            {cat.questions.map((q,qi)=>{
+              const ans=catAnswers[q.id];
+              const lockInfo = getQuestionLock(cat.id, q.id, answers);
+
+              // Auto-apply locked answer (e.g. vehicle mileage when no car)
+              if(lockInfo.locked && lockInfo.autoScore !== undefined && ans !== lockInfo.autoScore) {
+                setSingle(cat.id, q.id, lockInfo.autoScore);
+              }
+
+              return(
+                <div key={q.id} id={"question-"+qi} style={{marginBottom:qi<cat.questions.length-1?"2rem":0, opacity: lockInfo.locked ? 0.45 : 1, transition:"opacity 0.3s", scrollMarginTop:"80px"}}>
+                  <p style={{color: lockInfo.locked ? "#4a7c5a" : "#c8e6c8",fontSize:"clamp(0.9rem,2.5vw,1rem)",marginBottom:"0.85rem",lineHeight:1.55}}>
+                    {q.text}
+                    {q.type==="multi"&&!lockInfo.locked&&<span style={{fontSize:"0.78rem",color:"#78b87a",display:"block",marginTop:"0.2rem"}}>Select all that apply</span>}
+                    {lockInfo.locked && <span style={{fontSize:"0.78rem",color:"#4a7c5a",display:"block",marginTop:"0.3rem",fontStyle:"italic"}}>🔒 {lockInfo.reason}</span>}
+                  </p>
+                  <div style={{display:"flex",flexDirection:"column",gap:"0.45rem"}}>
+                    {q.options.map(opt=>{
+                      const sel=q.type==="single"?ans===opt.score:Array.isArray(ans)&&ans.some(o=>o.label===opt.label);
+                      const disabled = lockInfo.locked || isOptionDisabled(cat.id, q.id, opt.label, opt.score, answers);
+                      return(
+                        <button key={opt.label}
+                          onClick={()=>{
+                            if(disabled) return;
+                            q.type==="single"?setSingle(cat.id,q.id,opt.score,qi,cat.questions.length):toggleMulti(cat.id,q.id,opt,qi,cat.questions.length);
+                          }}
+                          style={{
+                            background: disabled ? "rgba(255,255,255,0.015)" : sel?`linear-gradient(135deg,${cat.accent}33,${cat.accent}18)`:"rgba(255,255,255,0.035)",
+                            border: disabled ? "1px solid rgba(255,255,255,0.04)" : sel?`1px solid ${cat.accent}99`:"1px solid rgba(255,255,255,0.07)",
+                            borderRadius:12,
+                            padding:"clamp(0.6rem,2vw,0.75rem) clamp(0.75rem,3vw,1rem)",
+                            color: disabled ? "rgba(255,255,255,0.2)" : sel?"#dcefd8":"#a8c9a5",
+                            textAlign:"left",
+                            cursor: disabled ? "not-allowed" : "pointer",
+                            fontFamily:FONT,
+                            fontSize:"clamp(0.85rem,2.2vw,0.93rem)",
+                            display:"flex",alignItems:"center",gap:"0.7rem",
+                            transition:"all 0.15s",lineHeight:1.4,
+                            textDecoration: disabled && !lockInfo.locked ? "line-through" : "none",
+                          }}
+                          onMouseOver={e=>{if(!sel&&!disabled)e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                          onMouseOut={e=>{if(!sel&&!disabled)e.currentTarget.style.background="rgba(255,255,255,0.035)";}}>
+                          <span style={{
+                            width:18,height:18,flexShrink:0,
+                            borderRadius:q.type==="multi"?4:"50%",
+                            border:`2px solid ${disabled?"rgba(255,255,255,0.08)":sel?cat.accent:"rgba(255,255,255,0.2)"}`,
+                            background:sel&&!disabled?cat.accent:"transparent",
+                            display:"flex",alignItems:"center",justifyContent:"center",
+                            fontSize:11,color:"#fff"
+                          }}>{sel&&!disabled&&"✓"}</span>
+                          {opt.label}
+                          {disabled && !lockInfo.locked && <span style={{marginLeft:"auto",fontSize:"0.7rem",color:"rgba(255,255,255,0.2)"}}>🔒</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            <div style={{marginTop:"1.75rem",display:"flex",gap:"0.75rem"}}>
+              {catIndex>0&&(
+                <button onClick={goBack} style={{flex:"0 0 auto",background:"rgba(255,255,255,0.06)",color:"#78b87a",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,padding:"0.95rem clamp(0.8rem,3vw,1.25rem)",fontSize:"clamp(0.85rem,2.2vw,1rem)",cursor:"pointer",fontFamily:FONT,transition:"all 0.15s"}}>
+                  ← Back
+                </button>
+              )}
+              {!isLast?(
+                <button onClick={goNext} disabled={!allAnswered}
+                  style={{flex:1,background:allAnswered?"linear-gradient(135deg,#2d7a4f,#4caf50)":"rgba(255,255,255,0.05)",color:allAnswered?"#fff":"rgba(255,255,255,0.25)",border:"none",borderRadius:12,padding:"0.95rem",fontSize:"clamp(0.9rem,2.5vw,1rem)",cursor:allAnswered?"pointer":"not-allowed",fontFamily:FONT,letterSpacing:"0.04em",boxShadow:allAnswered?"0 4px 20px rgba(76,175,80,0.3)":"none",transition:"all 0.2s"}}>
+                  Next →
+                </button>
+              ):(
+                <button onClick={handleSubmit} disabled={!allAnswered}
+                  style={{flex:1,background:allAnswered?"linear-gradient(135deg,#166534,#16a34a)":"rgba(255,255,255,0.05)",color:allAnswered?"#fff":"rgba(255,255,255,0.25)",border:allAnswered?"2px solid #4caf5088":"none",borderRadius:12,padding:"0.95rem",fontSize:"clamp(0.9rem,2.5vw,1.05rem)",cursor:allAnswered?"pointer":"not-allowed",fontFamily:FONT,letterSpacing:"0.05em",boxShadow:allAnswered?"0 4px 24px rgba(76,175,80,0.4)":"none",transition:"all 0.2s",fontWeight:"bold"}}>
+                  ✅ Submit & See My Results
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>{`@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+
+  // ── RESULTS ──
+  if(phase==="results") return(
+    <div style={BG}>
+      <div ref={topRef}/>
+      <div style={{maxWidth:680,margin:"0 auto",padding:"clamp(1rem,4vw,2rem) clamp(1rem,4vw,1.25rem)"}}>
+        <div style={{animation:"rise 0.6s ease"}}>
+          {/* overall */}
+          <div style={{textAlign:"center",marginBottom:"2.5rem",background:og.bg,border:`2px solid ${og.color}44`,borderRadius:24,padding:"clamp(1.5rem,4vw,2.5rem) clamp(1rem,4vw,2rem)"}}>
+            <div style={{fontSize:"clamp(2rem,6vw,2.8rem)",marginBottom:"0.3rem"}}>{og.emoji}</div>
+            <div style={{fontSize:"clamp(3.5rem,12vw,5rem)",fontWeight:"bold",color:og.color,lineHeight:1,letterSpacing:"-0.02em"}}>{og.letter}</div>
+            <div style={{fontSize:"clamp(1rem,3vw,1.1rem)",color:"#a8d5a2",margin:"0.4rem 0 0.2rem",fontStyle:"italic"}}>{og.label}</div>
+            <div style={{fontSize:"clamp(0.85rem,2.5vw,1rem)",color:"#78b87a",marginBottom:"1rem"}}>
+              Overall score: <strong style={{color:og.color}}>{overallAvg.toFixed(1)}</strong> / 10
+            </div>
+            <div style={{display:"flex",gap:"0.4rem",justifyContent:"center",flexWrap:"wrap",marginBottom:"1.25rem"}}>
+              {categories.map(c=>{const s=scores[c.id]||0;const g=getGrade(s);return(
+                <div key={c.id} style={{background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"0.35rem 0.5rem",textAlign:"center",minWidth:48}}>
+                  <div style={{fontSize:"clamp(0.8rem,2.5vw,0.9rem)"}}>{c.icon}</div>
+                  <div style={{fontSize:"clamp(0.85rem,2.5vw,1rem)",fontWeight:"bold",color:g.color}}>{g.letter}</div>
+                  <div style={{fontSize:"clamp(0.5rem,1.5vw,0.58rem)",color:"#78b87a"}}>{c.label}</div>
+                </div>
+              );})}
+            </div>
+            <p style={{color:"#7ab87c",fontSize:"clamp(0.85rem,2.5vw,0.95rem)",lineHeight:1.7,maxWidth:480,margin:"0 auto"}}>{getOverallMsg(overallAvg)}</p>
+          </div>
+
+          {/* category cards */}
+          <div style={{display:"flex",flexDirection:"column",gap:"1.25rem"}}>
+            {categories.map(c=>{
+              const s=scores[c.id]||0;
+              const g=getGrade(s);
+              const{great,improve}=getTips(c.id,s);
+              const isG=great.length>0;
+              const tips=isG?great:improve;
+              return(
+                <div key={c.id} style={{background:"rgba(255,255,255,0.035)",border:`1px solid ${c.accent}25`,borderRadius:20,overflow:"hidden"}}>
+                  <div style={{height:4,background:`linear-gradient(90deg,${c.accent},${c.accent}66)`}}/>
+                  <div style={{padding:"clamp(1rem,3vw,1.5rem)"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"0.75rem"}}>
+                        <span style={{fontSize:"clamp(1.2rem,4vw,1.5rem)"}}>{c.icon}</span>
+                        <div>
+                          <div style={{color:"#c8e6c8",fontWeight:"bold",fontSize:"clamp(0.9rem,2.5vw,1.05rem)"}}>{c.label}</div>
+                          <div style={{fontSize:"clamp(0.72rem,2vw,0.8rem)",color:"#78b87a"}}>{g.emoji} {g.label}</div>
+                        </div>
+                      </div>
+                      <div style={{background:g.bg,border:`2px solid ${g.color}55`,borderRadius:12,padding:"0.4rem clamp(0.5rem,2vw,0.9rem)",textAlign:"center",flexShrink:0}}>
+                        <div style={{fontSize:"clamp(1.4rem,4vw,1.8rem)",fontWeight:"bold",color:g.color,lineHeight:1}}>{g.letter}</div>
+                        <div style={{fontSize:"clamp(0.6rem,1.5vw,0.68rem)",color:"#78b87a"}}>{s.toFixed(1)}/10</div>
+                      </div>
+                    </div>
+                    <div style={{height:7,background:"rgba(255,255,255,0.07)",borderRadius:100,marginBottom:"1.25rem"}}>
+                      <div style={{width:`${s*10}%`,height:"100%",borderRadius:100,background:`linear-gradient(90deg,${c.accent},${c.accent}bb)`,transition:"width 1.2s ease"}}/>
+                    </div>
+                    <div style={{borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:"1rem"}}>
+                      {isG?(
+                        <>
+                          <div style={{fontSize:"clamp(0.65rem,1.8vw,0.73rem)",color:"#4caf50",textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:"0.6rem"}}>✅ Well done — here's why this matters</div>
+                          {tips.map((t,i)=>(
+                            <div key={i} style={{display:"flex",gap:"0.6rem",fontSize:"clamp(0.82rem,2.2vw,0.88rem)",color:"#a8d5a2",lineHeight:1.6,marginBottom:"0.4rem",padding:"0.55rem 0.75rem",background:"rgba(76,175,80,0.09)",borderRadius:9,borderLeft:"3px solid #4caf5055"}}>
+                              <span style={{flexShrink:0}}>🌿</span>{t}
+                            </div>
+                          ))}
+                        </>
+                      ):(
+                        <>
+                          <div style={{fontSize:"clamp(0.65rem,1.8vw,0.73rem)",color:c.accent,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:"0.6rem"}}>
+                            💡 Tips to improve your {g.letter} to {getGrade(Math.min(10,s+2)).letter}
+                          </div>
+                          {tips.map((t,i)=>(
+                            <div key={i} style={{display:"flex",gap:"0.6rem",fontSize:"clamp(0.82rem,2.2vw,0.88rem)",color:"#a8c9a5",lineHeight:1.6,marginBottom:"0.4rem",padding:"0.55rem 0.75rem",background:`${c.accent}0e`,borderRadius:9,borderLeft:`3px solid ${c.accent}44`}}>
+                              <span style={{color:c.accent,flexShrink:0}}>→</span>{t}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* save / email options */}
+          <div style={{marginTop:"2.5rem",marginBottom:"3rem",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(76,175,80,0.25)",borderRadius:20,padding:"clamp(1.2rem,4vw,2rem)"}}>
+            <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
+              <div style={{fontSize:"1.8rem",marginBottom:"0.5rem"}}>💾</div>
+              <h3 style={{color:"#a8d5a2",fontWeight:"normal",fontSize:"clamp(1rem,3vw,1.2rem)",margin:"0 0 0.5rem"}}>Save or share your results</h3>
+              <p style={{color:"#78b87a",fontSize:"clamp(0.78rem,2vw,0.85rem)",lineHeight:1.6,margin:0}}>
+                Choose a format to download — your file will save to your device automatically.<br/>
+                <strong style={{color:"#a8d5a2"}}>Email</strong> sends your full results as formatted text directly to your inbox.
+              </p>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"0.75rem"}}>
+              {[
+                {icon:"📄",label:"PDF",sub:"Download & print",action:"pdf",note:"Opens print dialog"},
+                {icon:"🌐",label:"HTML",sub:"Download file",action:"html",note:"Open in any browser"},
+                {icon:"📊",label:"CSV",sub:"Download spreadsheet",action:"csv",note:"Opens in Excel"},
+                {icon:"📝",label:"Text",sub:"Download summary",action:"txt",note:"Plain text file"},
+                {icon:"📧",label:"Email",sub:"Send to inbox",action:"email",note:`Sent to ${email}`},
+              ].map(opt=>(
+                <button key={opt.action} onClick={()=>handleDownload(opt.action,scores,overallAvg,og,categories,email,setPhase)}
+                  style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(76,175,80,0.2)",borderRadius:14,padding:"1rem 0.75rem",cursor:"pointer",fontFamily:FONT,textAlign:"center",transition:"all 0.15s",color:"#dcefd8",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.25rem"}}
+                  onMouseOver={e=>{e.currentTarget.style.background="rgba(76,175,80,0.12)";e.currentTarget.style.borderColor="rgba(76,175,80,0.5)";}}
+                  onMouseOut={e=>{e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.borderColor="rgba(76,175,80,0.2)";}}>
+                  <div style={{fontSize:"1.8rem"}}>{opt.icon}</div>
+                  <div style={{fontSize:"0.88rem",fontWeight:"bold",color:"#a8d5a2"}}>{opt.label}</div>
+                  <div style={{fontSize:"0.7rem",color:"#78b87a"}}>{opt.sub}</div>
+                  <div style={{fontSize:"0.65rem",color:"#4a7c5a",marginTop:"0.1rem"}}>{opt.note}</div>
+                </button>
+              ))}
+            </div>
+            <p style={{textAlign:"center",color:"#4a7c5a",fontSize:"0.75rem",marginTop:"1rem",lineHeight:1.6}}>
+              You can download multiple formats — each tap saves a separate file to your device.
+            </p>
+          </div>
+        </div>
+      </div>
+      <style>{`@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+
+  // ── YES: SEND EMAIL ──
+  if(phase==="email_prompt_yes") return(
+    <div style={{...BG,display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}>
+      <div ref={topRef}/>
+      <div style={{textAlign:"center",padding:"3rem 2rem",animation:"rise 0.6s ease",maxWidth:440,margin:"0 auto"}}>
+        {!sending&&!scores._sent?(
+          <>
+            <div style={{fontSize:"2.5rem",marginBottom:"1rem"}}>📧</div>
+            <h2 style={{color:"#a8d5a2",fontWeight:"normal",fontSize:"clamp(1.1rem,3vw,1.4rem)",margin:"0 0 0.75rem"}}>Sending your results to</h2>
+            <div style={{color:"#4caf50",fontSize:"clamp(0.9rem,2.5vw,1.1rem)",marginBottom:"1.5rem",wordBreak:"break-all"}}>{email}</div>
+            <div style={{display:"flex",justifyContent:"center",gap:"0.4rem",marginBottom:"0.5rem"}}>
+              {[0,1,2].map(i=><div key={i} style={{width:10,height:10,borderRadius:"50%",background:"#4caf50",animation:`pulse 1s ease ${i*0.2}s infinite`}}/>)}
+            </div>
+            <p style={{color:"#78b87a",fontSize:"0.85rem"}}>Sending…</p>
+            {!sending&&(()=>{sendEmail(scores);return null;})()}
+          </>
+        ):null}
+      </div>
+      <style>{`
+        @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
+      `}</style>
+    </div>
+  );
+
+  // ── EMAIL SENT ──
+  if(phase==="done_email") return(
+    <div style={{...BG,display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}>
+      <div ref={topRef}/>
+      <div style={{textAlign:"center",padding:"3rem clamp(1rem,4vw,2rem)",animation:"rise 0.6s ease",maxWidth:460,margin:"0 auto"}}>
+        <div style={{fontSize:"3.5rem",marginBottom:"1rem"}}>✅</div>
+        <h2 style={{color:"#a8d5a2",fontWeight:"normal",fontSize:"clamp(1.1rem,3.5vw,1.5rem)",margin:"0 0 0.75rem"}}>Results sent!</h2>
+        <p style={{color:"#78b87a",fontSize:"clamp(0.85rem,2.5vw,1rem)",lineHeight:1.7,marginBottom:"2rem"}}>
+          Your full results and personalised tips have been emailed to <strong style={{color:"#a8d5a2"}}>{email}</strong>.<br/>Check your inbox — and keep up the great work! 🌿
+        </p>
+        <button onClick={()=>setPhase("closed")}
+          style={{background:"linear-gradient(135deg,#2d7a4f,#4caf50)",color:"#fff",border:"none",borderRadius:100,padding:"0.9rem clamp(2rem,5vw,2.8rem)",fontSize:"clamp(0.9rem,2.5vw,1rem)",cursor:"pointer",fontFamily:FONT,boxShadow:"0 6px 24px rgba(76,175,80,0.35)",transition:"transform 0.15s",width:"100%",maxWidth:260}}>
+          Close ✓
+        </button>
+      </div>
+      <style>{`@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+
+  // ── NO EMAIL — confirm checkbox ──
+  if(phase==="no_email") return(
+    <div style={{...BG,display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh"}}>
+      <div ref={topRef}/>
+      <div style={{textAlign:"center",padding:"3rem clamp(1rem,4vw,2rem)",animation:"rise 0.6s ease",maxWidth:440,margin:"0 auto"}}>
+        <div style={{fontSize:"2.5rem",marginBottom:"1rem"}}>👍</div>
+        <h2 style={{color:"#a8d5a2",fontWeight:"normal",fontSize:"clamp(1.1rem,3.5vw,1.4rem)",margin:"0 0 0.75rem"}}>No problem!</h2>
+        <p style={{color:"#78b87a",fontSize:"clamp(0.85rem,2.5vw,0.95rem)",lineHeight:1.7,marginBottom:"1.75rem"}}>
+          Your results are shown above. Please tick OK below to confirm you're done — thanks for taking the survey! 🌿
+        </p>
+        <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"0.75rem",cursor:"pointer",marginBottom:"1.75rem",fontSize:"clamp(0.9rem,2.5vw,1rem)",color:"#c8e6c8"}}>
+          <input type="checkbox" checked={okChecked} onChange={e=>setOkChecked(e.target.checked)}
+            style={{width:22,height:22,cursor:"pointer",accentColor:"#4caf50"}}/>
+          OK, I'm done with my results
+        </label>
+        <button onClick={()=>{if(okChecked)setPhase("closed");}} disabled={!okChecked}
+          style={{background:okChecked?"linear-gradient(135deg,#2d7a4f,#4caf50)":"rgba(255,255,255,0.07)",color:okChecked?"#fff":"rgba(255,255,255,0.3)",border:"none",borderRadius:100,padding:"0.9rem clamp(2rem,5vw,2.8rem)",fontSize:"clamp(0.9rem,2.5vw,1rem)",cursor:okChecked?"pointer":"not-allowed",fontFamily:FONT,boxShadow:okChecked?"0 6px 24px rgba(76,175,80,0.35)":"none",transition:"all 0.2s",width:"100%",maxWidth:260}}>
+          Close ✓
+        </button>
+      </div>
+      <style>{`@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+
+  return null;
+}
+
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(EcoSurvey));
+  </script>
+</body>
+</html>
